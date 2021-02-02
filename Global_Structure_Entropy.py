@@ -118,7 +118,6 @@ def Global_Structure_Entropy(graph_path):
         # 3. 合并delta最大的两个社区，以及更新相关的数据结构，包括社区列表，社区体积大小，
         # 割边数目，邻居集合等
         # 4. 继续尝试将社区的邻居加入到社区之中，并记下结构熵减小最大的邻居
-        # 每一次合并都是将一个单点加入已有的社区
         # -----------------在下方填充代码完成功能------------
         heap = []
         allCombinations = list(itertools.combinations(community, 2))
