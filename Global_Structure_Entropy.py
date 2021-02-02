@@ -11,7 +11,7 @@ g12： 表示社区 1 和社区 2 之间的连边数目
 """
 import math
 import heapq
-import itertools
+import time
 
 def ResolveGraphFile(graph_path):
     # 1. 读图的.txt文件，创建一个字典，用于存储图的邻接表
@@ -59,16 +59,21 @@ def Global_Structure_Entropy(graph_path):
             m += deg
             degree[node] += deg
 
-    # 计算当前社区的邻居字典集合以及当前社区的体积与割边
+    localtime = time.asctime(time.localtime(time.time()))
+    print(len(community), ": ", localtime)
+
+    # 计算当前社区外的邻居的列表集合以及当前社区的体积与割边
     def Vol_g(com):
         vol = 0
         g = 0
+        outer_neighbors = []  # 当前社区外的邻居列表集合
         for node in com:
             for neighbor, deg in adjacency_table[node].items():
                 vol += deg
                 if neighbor not in com:
+                    outer_neighbors.append(neighbor)
                     g += deg
-        return vol, g
+        return vol, g, outer_neighbors
 
     def G_12(com1, com2):
         g_12 = 0
@@ -77,13 +82,24 @@ def Global_Structure_Entropy(graph_path):
                 if neighbor in com2:
                     g_12 += 1
         return g_12
+
+    # 计算当前社区的邻居社区
+    def NeighborCom(com):
+        neighborCom = []
+        _, _, outer_neighbors = Vol_g(com)
+        for node in outer_neighbors:
+            for community_i in community:
+                if node in community_i:
+                    if community_i not in neighborCom:
+                        neighborCom.append(community_i)
+        return neighborCom
     delta = 0.0
 
     # 2. 初始化，计算合并前后的结构熵的变化值delta
     # -----------------在下方填充代码完成功能------------
     def Delta(com1, com2):
-        vol_1, g_1 = Vol_g(com1)
-        vol_2, g_2 = Vol_g(com2)
+        vol_1, g_1, _ = Vol_g(com1)
+        vol_2, g_2, _ = Vol_g(com2)
         g_12 = G_12(com1, com2)
         vol_12 = vol_1 + vol_2
         d = 1 / m * ((vol_1 - g_1) * math.log(vol_12 / vol_1, 2) + (vol_2 - g_2) * math.log(vol_12 / vol_2, 2) - 2 * g_12
@@ -91,11 +107,10 @@ def Global_Structure_Entropy(graph_path):
         return (d, com1, com2)
 
     heap = []
-    allCombinations = list(itertools.combinations(community, 2))
-    for combination in allCombinations:
-        com_1 = combination[0]
-        com_2 = combination[1]
-        heapq.heappush(heap, Delta(com_1, com_2))
+    for com_1 in community:
+        neighborCom = NeighborCom(com_1)
+        for com_2 in neighborCom:
+            heapq.heappush(heap, Delta(com_1, com_2))
     item = heapq.heappop(heap)
 
     community_1 = item[1]
@@ -110,6 +125,8 @@ def Global_Structure_Entropy(graph_path):
     community.remove(community_2)
     community.append(community_3)
     delta = item[0]
+    localtime = time.asctime(time.localtime(time.time()))
+    print(len(community), ": ", localtime)
 
     # ***************** separate line******************
     # 当delta 小于 0 ，也就是说结构熵仍然在减小，
@@ -120,11 +137,10 @@ def Global_Structure_Entropy(graph_path):
         # 4. 继续尝试将社区的邻居加入到社区之中，并记下结构熵减小最大的邻居
         # -----------------在下方填充代码完成功能------------
         heap = []
-        allCombinations = list(itertools.combinations(community, 2))
-        for combination in allCombinations:
-            com_1 = combination[0]
-            com_2 = combination[1]
-            heapq.heappush(heap, Delta(com_1, com_2))
+        for com_1 in community:
+            neighborCom = NeighborCom(com_1)
+            for com_2 in neighborCom:
+                heapq.heappush(heap, Delta(com_1, com_2))
         item = heapq.heappop(heap)
 
         community_1 = item[1]
@@ -139,11 +155,13 @@ def Global_Structure_Entropy(graph_path):
         community.remove(community_2)
         community.append(community_3)
         delta = item[0]
+        localtime = time.asctime(time.localtime(time.time()))
+        print(len(community), ": ", localtime)
 
     # ***************** separate line******************
     return community
 
 
 if __name__ == "__main__":
-    file_name = "test.txt"  # 图的文件名
+    file_name = "Amazon.txt"  # 图的文件名
     print(Global_Structure_Entropy(file_name))
